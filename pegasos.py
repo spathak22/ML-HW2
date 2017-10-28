@@ -10,6 +10,8 @@ MAX_EPOCH = 200
 def perceptron_train(xt, yt, xd, yd):
     epoch = 0
     w = np.array([0. for t in xt[0]])
+    best_err = float('inf')
+    best_w = w
     while epoch < MAX_EPOCH:
         idxs = [i for i in range( len( xt ) )]
         random.shuffle( idxs )
@@ -18,8 +20,14 @@ def perceptron_train(xt, yt, xd, yd):
                 w += yt[i] * xt[i]
         err = sum([int(yd[i] * np.dot(w, xd[i]) <= 0.) for i in range(len(xd))])
         err_rate = err / float(len(xd))
+        if err_rate < best_err:
+            best_err = err_rate
+            best_w = w
+        else:
+            w = best_w
         print 'epoch {}\t\tpereptron error rate: {}'.format(epoch, err_rate)
         epoch += 1
+    return best_w, best_err
 
 
 def pegasos_train(xt, yt, xd, yd, c, target_delta):
@@ -82,13 +90,12 @@ def main():
                            "income-data/income.dev.txt"
     f2i, dt, dd = get_data(train_file, dev_file)
     xt, yt = [d[0] for d in dt], [d[1] for d in dt]
-    xd, yd = [d[0] for d in dt], [d[1] for d in dd]
-    perceptron_train(xt, yt, xd, yd)
-    # for k in range(-2, 3, 1):
-    #     c = 10.**k
-    #     print 'C = {}'.format(c)
-    #     weights, err_rate = pegasos_train(xt, yt, xd, yd, c, 0.0001)
-    #     print 'best err rate: {}'.format(err_rate)
+    xd, yd = [d[0] for d in dd], [d[1] for d in dd]
+    for k in range(-2, 3, 1):
+        c = 10.**k
+        print 'C = {}'.format(c)
+        weights, err_rate = pegasos_train(xt, yt, xd, yd, c, 0.0001)
+        print 'best err rate: {}'.format(err_rate)
 
 if __name__ == '__main__':
     main()
