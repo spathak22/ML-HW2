@@ -3,14 +3,19 @@ import random
 import sys
 from reference_perceptron import *
 
-REG = 0.0001
+REG = 0.00001
+C = 10.
+MAX_EPOCH = 200
 
-def pegasos_train(xt, yt, xd, yd, target_delta):
+def pegasos_train(xt, yt, xd, yd, c, target_delta):
     best_err_rate = float('inf')
     best_w = None
     epoch = 0
-    while True:
-        w = train_epoch(xt, yt, REG, len(xt), best_w)
+    while epoch < MAX_EPOCH:
+        idxs = [i for i in range( len( xt ) )]
+        # random.shuffle( idxs )
+        x_shuffle, y_shuffle = [xt[i] for i in idxs], [yt[i] for i in idxs]
+        w = train_epoch(x_shuffle, y_shuffle, epoch, c, best_w)
         err = test(xd, yd, w)
         
         if err < best_err_rate:
@@ -20,19 +25,22 @@ def pegasos_train(xt, yt, xd, yd, target_delta):
                 return best_w, best_err_rate
             best_err_rate = err
         epoch += 1
+
+    return best_w, best_err_rate
             
 
-
-def train_epoch(x, y, reg_const, epoch_length, w=None):
+def train_epoch(x, y, epoch, c, w=None):
     if w is None:
         w = np.array([0. for i in range(len(x[0]))])
-    for t in range(epoch_length):
-        learn_rate = 1. / (reg_const * (t + 1))
-        i = random.randint(0, len(x) - 1)
-        if y[i] * np.dot(w, x[i]) < 1.:
-            w = (1. - reg_const * learn_rate) * w + learn_rate * y[i] * x[i]
+    # "regularization" constant
+    l = 2. / (len(x) * c)
+    # train for this epoch
+    for t in range(len(x)):
+        learn_rate = 1. / (l * (epoch*len(x) + t + 1))
+        if y[t] * np.dot( w, x[t] ) < 1.:
+            w = w * (1. - learn_rate * l) + learn_rate * y[t] * x[t]
         else:
-            w = (1. - reg_const * learn_rate) * w
+            w = w * (1. - learn_rate * l)
     return w
 
 
@@ -58,8 +66,10 @@ def main():
     f2i, dt, dd = get_data(train_file, dev_file)
     xt, yt = [d[0] for d in dt], [d[1] for d in dt]
     xd, yd = [d[0] for d in dt], [d[1] for d in dd]
-    weights, err_rate = pegasos_train(xt, yt, xd, yd, 0.0001)
-    print 'best err rate: {}'.format(err_rate)
+    for k in range(-2, 3, 1):
+        c = 10.**k
+        weights, err_rate = pegasos_train(xt, yt, xd, yd, c, 0.0001)
+        print 'C = {}\t\tbest err rate: {}'.format(c, err_rate)
 
 if __name__ == '__main__':
     main()
