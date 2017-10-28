@@ -91,11 +91,14 @@ def main():
     f2i, dt, dd = get_data(train_file, dev_file)
     xt, yt = [d[0] for d in dt], [d[1] for d in dt]
     xd, yd = [d[0] for d in dd], [d[1] for d in dd]
-    for k in range(-2, 3, 1):
-        c = 10.**k
-        print 'C = {}'.format(c)
-        weights, err_rate = pegasos_train(xt, yt, xd, yd, c, 0.0001)
-        print 'best err rate: {}'.format(err_rate)
+    weights, err_rate = pegasos_train(xt, yt, xd, yd, 0.1, 0.0001)
+    print 'best err rate: {}'.format(err_rate)
+
+    # for k in range(-2, 3, 1):
+    #     c = 10.**k
+    #     print 'C = {}'.format(c)
+    #     weights, err_rate = pegasos_train(xt, yt, xd, yd, c, 0.0001)
+    #     print 'best err rate: {}'.format(err_rate)
 
 if __name__ == '__main__':
     main()
