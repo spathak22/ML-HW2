@@ -7,6 +7,21 @@ REG = 0.00001
 C = 10.
 MAX_EPOCH = 200
 
+def perceptron_train(xt, yt, xd, yd):
+    epoch = 0
+    w = np.array([0. for t in xt[0]])
+    while epoch < MAX_EPOCH:
+        idxs = [i for i in range( len( xt ) )]
+        random.shuffle( idxs )
+        for i in idxs:
+            if yt[i] * np.dot(w, xt[i]) <= 0.:
+                w += yt[i] * xt[i]
+        err = sum([int(yd[i] * np.dot(w, xd[i]) <= 0.) for i in range(len(xd))])
+        err_rate = err / float(len(xd))
+        print 'epoch {}\t\tpereptron error rate: {}'.format(epoch, err_rate)
+        epoch += 1
+
+
 def pegasos_train(xt, yt, xd, yd, c, target_delta):
     best_err_rate = float('inf')
     best_w = None
@@ -38,9 +53,11 @@ def train_epoch(x, y, epoch, c, w=None):
     for t in range(len(x)):
         learn_rate = 1. / (l * (epoch*len(x) + t + 1))
         if y[t] * np.dot( w, x[t] ) < 1.:
-            w = w * (1. - learn_rate * l) + learn_rate * y[t] * x[t]
+            # w = w * (1. - learn_rate * l) + learn_rate * y[t] * x[t]
+            w = w - learn_rate * (l * w - y[t] * x[t])
         else:
-            w = w * (1. - learn_rate * l)
+            # w = w * (1. - learn_rate * l)
+            w = w - learn_rate * l * w
     return w
 
 
@@ -66,10 +83,12 @@ def main():
     f2i, dt, dd = get_data(train_file, dev_file)
     xt, yt = [d[0] for d in dt], [d[1] for d in dt]
     xd, yd = [d[0] for d in dt], [d[1] for d in dd]
-    for k in range(-2, 3, 1):
-        c = 10.**k
-        weights, err_rate = pegasos_train(xt, yt, xd, yd, c, 0.0001)
-        print 'C = {}\t\tbest err rate: {}'.format(c, err_rate)
+    perceptron_train(xt, yt, xd, yd)
+    # for k in range(-2, 3, 1):
+    #     c = 10.**k
+    #     print 'C = {}'.format(c)
+    #     weights, err_rate = pegasos_train(xt, yt, xd, yd, c, 0.0001)
+    #     print 'best err rate: {}'.format(err_rate)
 
 if __name__ == '__main__':
     main()
