@@ -61,7 +61,7 @@ def pegasos_train(xt, yt, xd, yd, c, target_delta):
             best_epoch = epoch
             total_svs += sv_count
             if best_err_rate - err < target_delta and epoch > MIN_EPOCH:
-                print 'support vectors: {}'.format(sv_count)
+                print '\nsupport vectors: {}'.format(sv_count)
                 return best_w, err, best_epoch, objs, tr_errs, d_errs
             best_err_rate = err
         epoch += 1
