@@ -48,10 +48,14 @@ def pegasos_train(xt, yt, xd, yd, c, target_delta):
         t_err = test(xt, yt, w)
         err = test(xd, yd, w)
         # objective fn
+        """
         obj = 1. / len(xd) * sum([
             l / 2 * np.dot(w, w) + max(0, 1. - yd[i] * np.dot(w, xd[i]))
             for i in range(len(xd))
         ])
+        """
+        obj = l / 2. * np.dot(w, w) + 1. / len(xt) * sum([max(0., 1. - yt[i] * np.dot(w, xt[i])) 
+            for i in range(len(xt))])
         print '{}\t{}\t{}\t{}'.format( epoch, obj, t_err, err )
         objs.append(obj)
         tr_errs.append(t_err)
