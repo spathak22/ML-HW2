@@ -99,7 +99,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         train_file, dev_file = sys.argv[1], sys.argv[2]
     else:
-        train_file, dev_file = "income.train.txt.5k", "income.dev.txt"
+        train_file, dev_file = "income-data/income.train.txt.5k", "income-data/income.dev.txt"
 
     feature2index = create_feature_map(train_file)
     train_data = map_data(train_file, feature2index)
@@ -111,6 +111,10 @@ if __name__ == "__main__":
 
     print "\nMIRA Perceptron..."
     model = train(train_data, dev_data, it=5, MIRA=True, check_freq=1000, verbose=False, aggressive=.9)
+
+
+
+
     print "train_err {:.2%} (+:{:.1%})".format(*test(train_data, model))
 
     print "\nSVM..."
@@ -122,4 +126,8 @@ if __name__ == "__main__":
     test_svm(solver, train_data)
     test_svm(solver, dev_data)
 
-
+    test_data = map_data('income-data/income.test.txt', feature2index)
+    # predicted = [model.dot( vecx ) > 0. for vecx, y in test_data]
+    predicted = solver.predict( [xi for xi, yi in test_data] )
+    for c in predicted:
+        print >> sys.stderr, c > 0.

@@ -1,11 +1,13 @@
 import numpy as np
 import random
 import sys
+import matplotlib.pyplot as plt
 from reference_perceptron import *
 
 REG = 0.00001
 C = 10.
-MAX_EPOCH = 200
+MIN_EPOCH = 100
+MAX_EPOCH = 125
 
 def perceptron_train(xt, yt, xd, yd):
     epoch = 0
@@ -31,42 +33,57 @@ def perceptron_train(xt, yt, xd, yd):
 
 
 def pegasos_train(xt, yt, xd, yd, c, target_delta):
+    total_svs = 0
+    l = 2. / (len( xd ) * c)
     best_err_rate = float('inf')
-    best_w = None
+    best_w, best_epoch = None, None
     epoch = 0
+    objs, tr_errs, d_errs = [], [], []
     while epoch < MAX_EPOCH:
         idxs = [i for i in range( len( xt ) )]
-        # random.shuffle( idxs )
+        random.shuffle( idxs )
         x_shuffle, y_shuffle = [xt[i] for i in idxs], [yt[i] for i in idxs]
-        w = train_epoch(x_shuffle, y_shuffle, epoch, c, best_w)
+        w, sv_count = train_epoch(x_shuffle, y_shuffle, epoch, c, best_w)
+        # training and dev error
+        t_err = test(xt, yt, w)
         err = test(xd, yd, w)
-        
+        # objective fn
+        obj = 1. / len(xd) * sum([
+            l / 2 * np.dot(w, w) + max(0, 1. - yd[i] * np.dot(w, xd[i]))
+            for i in range(len(xd))
+        ])
+        print '{}\t{}\t{}\t{}'.format( epoch, obj, t_err, err )
+        objs.append(obj)
+        tr_errs.append(t_err)
+        d_errs.append(err)
         if err < best_err_rate:
-            print >> sys.stderr, 'epoch {}: dev err {}'.format(epoch, err)
             best_w = w
-            if best_err_rate - err < target_delta:
-                return best_w, best_err_rate
+            best_epoch = epoch
+            total_svs += sv_count
+            if best_err_rate - err < target_delta and epoch > MIN_EPOCH:
+                print 'support vectors: {}'.format(sv_count)
+                return best_w, err, best_epoch, objs, tr_errs, d_errs
             best_err_rate = err
         epoch += 1
 
-    return best_w, best_err_rate
+    print 'support vectors: {}'.format(sv_count)
+
+    return best_w, best_err_rate, best_epoch, objs, tr_errs, d_errs
             
 
 def train_epoch(x, y, epoch, c, w=None):
+    sv_count = 0
     if w is None:
         w = np.array([0. for i in range(len(x[0]))])
-    # "regularization" constant
     l = 2. / (len(x) * c)
-    # train for this epoch
     for t in range(len(x)):
-        learn_rate = 1. / (l * (epoch*len(x) + t + 1))
+        learn_rate = 1. / (l * (epoch * len(x) + t + 1))
         if y[t] * np.dot( w, x[t] ) < 1.:
-            # w = w * (1. - learn_rate * l) + learn_rate * y[t] * x[t]
             w = w - learn_rate * (l * w - y[t] * x[t])
+            sv_count += 1
         else:
-            # w = w * (1. - learn_rate * l)
             w = w - learn_rate * l * w
-    return w
+    return w, sv_count
 
 
 def predict(x, w):
@@ -82,23 +99,44 @@ def get_data(train_file, dev_file):
     feature2index = create_feature_map(train_file)
     train_data = map_data(train_file, feature2index)
     dev_data = map_data(dev_file, feature2index)
-    return feature2index, train_data, dev_data
+    test_data = map_data( 'income-data/income.test.txt', feature2index)
+    return feature2index, train_data, dev_data, test_data
 
 
 def main():
     train_file, dev_file = "income-data/income.train.txt.5k", \
                            "income-data/income.dev.txt"
-    f2i, dt, dd = get_data(train_file, dev_file)
+    f2i, dt, dd, dtest = get_data(train_file, dev_file)
     xt, yt = [d[0] for d in dt], [d[1] for d in dt]
     xd, yd = [d[0] for d in dd], [d[1] for d in dd]
-    weights, err_rate = pegasos_train(xt, yt, xd, yd, 0.1, 0.0001)
-    print 'best err rate: {}'.format(err_rate)
+    weights, err_rate, best_epoch, objs, tr_errs, d_errs = pegasos_train(xt, yt, xd, yd, 1., 0.001)
 
-    # for k in range(-2, 3, 1):
-    #     c = 10.**k
-    #     print 'C = {}'.format(c)
-    #     weights, err_rate = pegasos_train(xt, yt, xd, yd, c, 0.0001)
-    #     print 'best err rate: {}'.format(err_rate)
+
+    # print predictions
+    test_lines = [l for l in open('income-data/income.test.txt', 'r')]
+    positive = 0
+    for i in range(len(dtest)):
+        pred = np.dot( dtest[i][0], weights )
+        print >> sys.stderr, test_lines[i].strip(),
+        if pred <= 0.:
+            print >> sys.stderr, '<=50K'
+        else:
+            print >> sys.stderr, '>50K'
+        # print >> sys.stderr, pred > 0.
+        if pred > 0.:
+            positive += 1
+    print '\n\nbest err rate: {} achieved in epoch {}'.format( err_rate, best_epoch )
+    print 'positive frac: {}'.format(positive / float(len(dtest)))
+
+    plt.plot(range(len(objs)), objs)
+    plt.title('Objective Function vs. Epoch')
+    plt.show()
+
+    trplt = plt.plot(range(len(tr_errs)), tr_errs)
+    plt.title('Error vs. Epoch')
+    dplt = plt.plot(range(len(d_errs)), d_errs)
+    plt.legend( ('Training Error', 'Dev Error'), numpoints = 1)
+    plt.show()
 
 if __name__ == '__main__':
     main()
