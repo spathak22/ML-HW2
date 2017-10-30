@@ -116,13 +116,13 @@ def create_feature_map(train_file):
     return feature2index
 
 def print_eval_result(clf,result_list, type='Linear'):
-    print('--------------Printing for:',type)
+    print(' -- Printing results for --- :',type)
     train_err = sum(svm_Y != y for svm_Y, y in zip(clf.predict(train_X), train_Y))
-    print "Q1.1 train_err {:.2%} ".format(train_err / train_size)
+    print "Q1.1 train_err :: {:.2%} ".format(train_err / train_size)
     result_list +=[round((train_err/train_size)*100,5)]
 
     dev_err = sum(svm_Y != y for svm_Y, y in zip(clf.predict(dev_X), dev_Y))
-    print "Q1.1 dev_err {:.2%} ".format(dev_err / dev_size)
+    print "Q1.1 dev_err :: {:.2%} ".format(dev_err / dev_size)
 
     result_list +=[round((dev_err/dev_size)*100,5)]
 
@@ -160,20 +160,20 @@ if __name__ == "__main__":
     # print "train_err {:.2%} (+:{:.1%})".format(*test(train_data, model))
 
     # 1.1
-    if arg1 == '1.1':
+    if arg1 == '3.1':
         train_X, train_Y = zip(*train_data)
         dev_X, dev_Y = zip(*dev_data)
         train_size = len(train_Y)
         dev_size = len(dev_Y)
 
-        # temp_c = range(1,100,5)
-        # c_list = [0.01, 0.1] + temp_c
+        # temp_c = range(5,100,5)
+        # c_list = [0.01, 0.1, 1] + temp_c
 
         c_list = [50]
 
-        res_list = [['Type','C','Train_Error','Dev_Error','Training_Time']]
+        res_list = [['Type','C','Train_Error','Dev_Error','Training_Time','Support Vectors']]
         for c in c_list:
-            print '===================>>>>>>>',c
+            print ' c = ',c
             begin_time = time.time()
             temp_list = []
             temp_list+=["Quadratic", c]
@@ -183,23 +183,14 @@ if __name__ == "__main__":
             end_time = time.time()
             temp_list = print_eval_result(clf1,result_list = temp_list, type="Quadratic")
             temp_list+=[end_time-begin_time]
-            print "Q1.1 Training time is ", end_time - begin_time
+            supportVectors = clf1.n_support_
+            supportSum = sum(supportVectors)
+            temp_list += [supportSum]
+            print "Q1.1 Training time is :: ", end_time - begin_time
+            print "Support vectors is ::  ",supportSum
             res_list+=[temp_list]
-
-
-        for c in c_list:
-            begin_time = time.time()
-            temp_list = []
-            temp_list += ["Linear", c]
-            clf2 = svm.SVC(kernel='linear', C=c)
-            clf2.fit(train_X, train_Y)
-            print_eval_result(clf2, result_list=temp_list)
-            end_time = time.time()
-            temp_list += [end_time - begin_time]
-            res_list+=[temp_list]
-            print "Q1.1 Training time is ", end_time - begin_time
-
         print res_list
-        write_to_csv(res_list,file_name = "Result_Comp_LI_Qu.csv",sep=',')
+        #write_to_csv(res_list,file_name = "Result_Comp_LI_Qu.csv",sep=',')
+
 
 
